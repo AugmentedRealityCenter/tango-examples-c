@@ -241,7 +241,8 @@ bool RenderFrame() {
   pointcloud->Render(cam->GetProjectionMatrix(), cam->GetViewMatrix(),
                      oc_2_ow_mat_depth,
                      TangoData::GetInstance().depth_buffer_size * 3,
-                     (float*)TangoData::GetInstance().depth_buffer);
+                     (float*)TangoData::GetInstance().depth_buffer,
+                     (float*)TangoData::GetInstance().color_buffer);
 
   grid->SetPosition(glm::vec3(0.0f, 0.0f, 0.0f) - kHeightOffset);
   // Render grid.

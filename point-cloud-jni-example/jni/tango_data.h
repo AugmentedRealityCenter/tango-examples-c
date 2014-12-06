@@ -67,6 +67,7 @@ class TangoData {
   pthread_mutex_t event_mutex;
 
   float* depth_buffer;
+  float* color_buffer;
   uint32_t depth_buffer_size;
   bool is_xyzij_dirty;
 

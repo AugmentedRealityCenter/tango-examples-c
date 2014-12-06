@@ -147,6 +147,14 @@ bool TangoData::SetConfig() {
   // max_vertex_count is the vertices count, max_vertex_count*3 is
   // the actual float buffer size.
   depth_buffer = new float[3 * max_vertex_count];
+  color_buffer = new float[3 * max_vertex_count];
+
+  //TODO remove this test code, and get colors from camera
+  for(int i=0;i<max_vertex_count;i++){
+	  color_buffer[3*i] = 1.0f;
+	  color_buffer[3*i+1] = 0.0f;
+	  color_buffer[3*i+2] = 0.0f;
+  }
 
   return true;
 }

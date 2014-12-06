@@ -18,12 +18,13 @@
 
 static const char kVertexShader[] =
     "attribute vec4 vertex;\n"
+	"attribute vec4 color;\n"
     "uniform mat4 mvp;\n"
     "varying vec4 v_color;\n"
     "void main() {\n"
     "  gl_PointSize = 5.0;\n"
     "  gl_Position = mvp*vertex;\n"
-    "  v_color = vertex;\n"
+    "  v_color = color;\n"
     "}\n";
 
 static const char kFragmentShader[] = "varying vec4 v_color;\n"
@@ -44,11 +45,13 @@ Pointcloud::Pointcloud() {
   }
   uniform_mvp_mat_ = glGetUniformLocation(shader_program_, "mvp");
   attrib_vertices_ = glGetAttribLocation(shader_program_, "vertex");
+  attrib_colors_ = glGetAttribLocation(shader_program_, "color");
   glGenBuffers(1, &vertex_buffers_);
+  glGenBuffers(1, &color_buffers_);
 }
 
 void Pointcloud::Render(glm::mat4 projection_mat, glm::mat4 view_mat, glm::mat4 model_mat,
-                        int depth_buffer_size, float *depth_data_buffer) {
+                        int depth_buffer_size, float *depth_data_buffer, float *color_data_buffer) {
   glUseProgram(shader_program_);
 
   // Lock xyz_ij mutex.
@@ -64,6 +67,14 @@ void Pointcloud::Render(glm::mat4 projection_mat, glm::mat4 view_mat, glm::mat4 
                depth_data_buffer, GL_STATIC_DRAW);
   glEnableVertexAttribArray(attrib_vertices_);
   glVertexAttribPointer(attrib_vertices_, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+  // Bind color buffer, must be at least as big as depth_buffer_size
+  glBindBuffer(GL_ARRAY_BUFFER, color_buffers_);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * depth_buffer_size,
+                 color_data_buffer, GL_STATIC_DRAW);
+  glEnableVertexAttribArray(attrib_colors_);
+  glVertexAttribPointer(attrib_colors_, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
   glDrawArrays(GL_POINTS, 0, 3 * depth_buffer_size);
