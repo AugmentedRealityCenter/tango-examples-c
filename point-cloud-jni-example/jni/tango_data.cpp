@@ -147,15 +147,11 @@ bool TangoData::SetConfig() {
   // max_vertex_count is the vertices count, max_vertex_count*3 is
   // the actual float buffer size.
   depth_buffer = new float[3 * max_vertex_count];
-  color_buffer = new float[3 * max_vertex_count];
-
-  //TODO remove this test code, and get colors from camera
-  for(int i=0;i<max_vertex_count;i++){
-	  color_buffer[3*i] = 1.0f;
-	  color_buffer[3*i+1] = 0.0f;
-	  color_buffer[3*i+2] = 0.0f;
+  texCoord_buffer = new float[2*max_vertex_count];
+  //TODO real code to calculated tex coords
+  for(int i=0;i<2*max_vertex_count;i++){
+	  texCoord_buffer[i] = 0.0f;
   }
-
   return true;
 }
 
@@ -381,4 +377,13 @@ TangoData::~TangoData() {
   config_ = nullptr;
 
   delete[] depth_buffer;
+  delete[] texCoord_buffer;
+}
+
+void TangoData::ConnectTexture(GLuint texture_id) {
+  if (TangoService_connectTextureId(TANGO_CAMERA_COLOR, texture_id, nullptr,
+                                    nullptr) == TANGO_SUCCESS) {
+    LOGI("TangoService_connectTextureId(): Success!");
+  } else
+    LOGE("TangoService_connectTextureId(): Failed!");
 }
