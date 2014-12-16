@@ -55,7 +55,6 @@ class TangoData {
   TangoErrorType Connect();
   bool ConnectCallbacks();
   void Disconnect();
-  void ConnectTexture(GLuint texture_id);
 
   bool SetupExtrinsicsMatrices();
   glm::mat4 GetOC2OWMat(bool is_depth);
@@ -68,7 +67,7 @@ class TangoData {
   pthread_mutex_t event_mutex;
 
   float* depth_buffer;
-  float* texCoord_buffer;
+  float* color_buffer;
   uint32_t depth_buffer_size;
   bool is_xyzij_dirty;
 
