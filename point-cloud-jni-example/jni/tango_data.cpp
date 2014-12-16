@@ -53,11 +53,36 @@ static void onXYZijAvailable(void*, const TangoXYZij* XYZ_ij) {
   if (XYZ_ij->xyz_count <= TangoData::GetInstance().max_vertex_count) {
     if (TangoData::GetInstance().depth_buffer != nullptr &&
         XYZ_ij->xyz != nullptr) {
-      memcpy(TangoData::GetInstance().depth_buffer, XYZ_ij->xyz,
-             XYZ_ij->xyz_count * 3 * sizeof(float));
+
+    	uint32_t num_new_points = XYZ_ij->xyz_count;
+    	if(TangoData::GetInstance().db_front+(3*num_new_points) < TangoData::GetInstance().db_size){
+    		//new points won't cause us to wrap around the buffer
+    		memcpy(TangoData::GetInstance().depth_buffer+TangoData::GetInstance().db_front, XYZ_ij->xyz,
+    				XYZ_ij->xyz_count * 3 * sizeof(float));
+    	} else {
+    		uint32_t how_many_will_fit = TangoData::GetInstance().db_size - TangoData::GetInstance().db_front;
+    		memcpy(TangoData::GetInstance().depth_buffer+TangoData::GetInstance().db_front, XYZ_ij->xyz,
+    				how_many_will_fit * sizeof(float));
+    		uint32_t how_many_left = (XYZ_ij->xyz_count * 3) - how_many_will_fit;
+    		//The type of xyz is float[3]
+    		memcpy(TangoData::GetInstance().depth_buffer, XYZ_ij->xyz + (how_many_will_fit/3),
+    		    				how_many_left * sizeof(float));
+    	}
+
+    	//Update front marker, this is a circular buffer
+    	TangoData::GetInstance().db_front = (TangoData::GetInstance().db_front+3*num_new_points)%TangoData::GetInstance().db_size;
+
+    	//Update to how many points are valid points
+    	if(TangoData::GetInstance().db_num_items < TangoData::GetInstance().db_size){
+    		TangoData::GetInstance().db_num_items += 3*num_new_points;
+    		if(TangoData::GetInstance().db_num_items > TangoData::GetInstance().db_size){
+    			TangoData::GetInstance().db_num_items = TangoData::GetInstance().db_size;
+    		}
+    	}
+
     }
   }
-  TangoData::GetInstance().depth_buffer_size = XYZ_ij->xyz_count;
+  //TangoData::GetInstance().depth_buffer_size = XYZ_ij->xyz_count;
 
   // Calculate the depth delta frame time, and store current and
   // previous frame timestamp. prev_depth_timestamp used for querying
@@ -70,6 +95,10 @@ static void onXYZijAvailable(void*, const TangoXYZij* XYZ_ij) {
   TangoData::GetInstance().is_xyzij_dirty = true;
 
   pthread_mutex_unlock(&TangoData::GetInstance().xyzij_mutex);
+}
+
+static void onFrameAvailable(void *context, TangoCameraId id, const TangoImageBuffer *buffer){
+	//LOGI("onFrameAvailable called");
 }
 
 // Tango event callback.
@@ -146,11 +175,14 @@ bool TangoData::SetConfig() {
   // Forward allocate the maximum size of depth buffer.
   // max_vertex_count is the vertices count, max_vertex_count*3 is
   // the actual float buffer size.
-  depth_buffer = new float[3 * max_vertex_count];
-  color_buffer = new float[3 * max_vertex_count];
+  db_size = (3*max_vertex_count)*10; //10 frames of data
+  db_front = 0;
+  db_num_items = 0;
+  depth_buffer = new float[db_size];
+  color_buffer = new float[db_size];
 
   //TODO remove this test code, and get colors from camera
-  for(int i=0;i<max_vertex_count;i++){
+  for(int i=0;i<db_size/3;i++){
 	  color_buffer[3*i] = 1.0f;
 	  color_buffer[3*i+1] = 0.0f;
 	  color_buffer[3*i+2] = 0.0f;
@@ -184,6 +216,12 @@ bool TangoData::ConnectCallbacks() {
     LOGI("TangoService_connectOnTangoEvent(): Failed");
     return false;
   }
+
+  if (TangoService_connectOnFrameAvailable(TANGO_CAMERA_COLOR,nullptr,onFrameAvailable)!= TANGO_SUCCESS) {
+	    LOGI("TangoService_connectOnFrameAvailable(): Failed");
+	    return false;
+	  }
+
   return true;
 }
 
@@ -268,14 +306,14 @@ void TangoData::UpdateXYZijData() {
 
   // Calculating average depth for debug display.
   float total_z = 0.0f;
-  for (uint32_t i = 0; i < depth_buffer_size; ++i) {
+  /*for (uint32_t i = 0; i < db_size; ++i) {
     // The memory layout is x,y,z,x,y,z. We are accumulating
     // all of the z value.
     total_z += depth_buffer[i * 3 + 2];
   }
   if (depth_buffer_size != 0) {
     depth_average_length = total_z / static_cast<float>(depth_buffer_size);
-  }
+  }*/
 
   // Query pose at the depth frame's timestamp.
   // Note: This function is querying pose from pose buffer inside

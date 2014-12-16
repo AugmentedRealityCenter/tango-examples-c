@@ -240,7 +240,7 @@ bool RenderFrame() {
   // Render point cloud based on depth buffer and depth frame transformation.
   pointcloud->Render(cam->GetProjectionMatrix(), cam->GetViewMatrix(),
                      oc_2_ow_mat_depth,
-                     TangoData::GetInstance().depth_buffer_size * 3,
+                     TangoData::GetInstance().db_num_items,
                      (float*)TangoData::GetInstance().depth_buffer,
                      (float*)TangoData::GetInstance().color_buffer);
 
@@ -398,7 +398,7 @@ JNIEXPORT jint JNICALL
 Java_com_projecttango_pointcloudnative_TangoJNINative_GetVerticesCount(
     JNIEnv*, jobject) {
   pthread_mutex_lock(&TangoData::GetInstance().xyzij_mutex);
-  int ret_val = TangoData::GetInstance().depth_buffer_size;
+  int ret_val = TangoData::GetInstance().db_num_items;
   pthread_mutex_unlock(&TangoData::GetInstance().xyzij_mutex);
   return ret_val;
 }
