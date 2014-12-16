@@ -77,7 +77,7 @@ void Pointcloud::Render(glm::mat4 projection_mat, glm::mat4 view_mat, glm::mat4 
 
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-  glDrawArrays(GL_POINTS, 0, depth_buffer_size/3);
+  glDrawArrays(GL_POINTS, 0, 3 * depth_buffer_size);
 
   // Unlock xyz_ij mutex.
   pthread_mutex_unlock(&TangoData::GetInstance().xyzij_mutex);

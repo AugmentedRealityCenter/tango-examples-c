@@ -68,12 +68,7 @@ class TangoData {
 
   float* depth_buffer;
   float* color_buffer;
-
-  uint32_t db_front;
-  uint32_t db_num_items;
-  uint32_t db_size;
-
-  //uint32_t depth_buffer_size;
+  uint32_t depth_buffer_size;
   bool is_xyzij_dirty;
 
   TangoPoseData cur_pose_data;
