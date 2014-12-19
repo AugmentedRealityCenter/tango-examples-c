@@ -65,6 +65,7 @@ class TangoData {
   pthread_mutex_t pose_mutex;
   pthread_mutex_t xyzij_mutex;
   pthread_mutex_t event_mutex;
+  pthread_mutex_t image_buffer_mutex;
 
   float* depth_buffer;
   float* color_buffer;
@@ -89,13 +90,15 @@ class TangoData {
   uint32_t max_vertex_count;
 
   // Tango Intrinsic for color camera.
-    int cc_width;
-    int cc_height;
-    double cc_fx;
-    double cc_fy;
-    double cc_cx;
-    double cc_cy;
-    double cc_distortion[5];
+  int cc_width;
+  int cc_height;
+  double cc_fx;
+  double cc_fy;
+  double cc_cx;
+  double cc_cy;
+  double cc_distortion[5];
+
+  const TangoImageBuffer* last_image_buffer;
 
 private:
   // Device to start service matrix.

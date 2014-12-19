@@ -90,6 +90,12 @@ static void onPoseAvailable(void*, const TangoPoseData* pose) {
   pthread_mutex_unlock(&TangoData::GetInstance().pose_mutex);
 }
 
+static void onFrameAvailable(void *context, TangoCameraId id, const TangoImageBuffer *buffer){
+	pthread_mutex_lock(&TangoData::GetInstance().image_buffer_mutex);
+	TangoData::GetInstance().last_image_buffer = buffer; //Is this really stable, or do I need to copy it to another image buffer?
+	pthread_mutex_unlock(&TangoData::GetInstance().image_buffer_mutex);
+}
+
 // Initialize Tango Service.
 TangoErrorType TangoData::Initialize(JNIEnv* env, jobject activity) {
   // The initialize function perform API and Tango Service version check,
@@ -101,6 +107,7 @@ TangoErrorType TangoData::Initialize(JNIEnv* env, jobject activity) {
 TangoData::TangoData() : config_(nullptr) {
   is_xyzij_dirty = false;
   is_pose_dirty = false;
+  last_image_buffer = nullptr;
 
   d_2_ss_mat_motion = glm::mat4(1.0f);
   d_2_ss_mat_depth = glm::mat4(1.0f);
@@ -189,6 +196,12 @@ bool TangoData::ConnectCallbacks() {
     LOGI("TangoService_connectOnTangoEvent(): Failed");
     return false;
   }
+
+  if (TangoService_connectOnFrameAvailable (TANGO_CAMERA_COLOR , nullptr, onFrameAvailable) != TANGO_SUCCESS){
+	  LOGI("connectOnFrameAvailable(): Failed");
+	      return false;
+  }
+
   return true;
 }
 
@@ -320,19 +333,28 @@ void TangoData::UpdateXYZijData() {
 	  if(piw_num_items > piw_size) {
 		  piw_num_items = piw_size;
 	  }
+	  pthread_mutex_lock(&TangoData::GetInstance().image_buffer_mutex);
 	  for(int i=0;i<depth_buffer_size/3;i++){
 		  //Calculate color camera coordinates for point:
 		  //  Rescale points so they lie on the focal plane
+		  //TODO: Do we need to look at distortion matrix?
 		  float ratio = cc_fx / depth_buffer[3*i+2];
-		  float px = cc_cx + depth_buffer[3*i]*ratio;
-		  float py = cc_cy + depth_buffer[3*i+1]*ratio;
+		  uint px = (uint)(cc_cx + depth_buffer[3*i]*ratio);
+		  uint py = (uint)(cc_cy + depth_buffer[3*i+1]*ratio);
 
+		  if(last_image_buffer != nullptr && px < last_image_buffer->width && py < last_image_buffer->height){
+			  float color_here = last_image_buffer->data[px + py*last_image_buffer->stride]/255.0f;
+			  color_buffer[(piw_front + 3*i)%piw_size] = color_here;
+			  color_buffer[(piw_front + 3*i + 1)%piw_size] = color_here;
+			  color_buffer[(piw_front + 3*i + 2)%piw_size] = color_here;
+		  }
 		  glm::vec4 orig_pt(depth_buffer[3*i],depth_buffer[3*i+1],depth_buffer[3*i+2],1.0);
 		  glm::vec4 xformed = oc_2_ow_mat * inverse_z_mat * orig_pt;
 		  points_in_world[(piw_front + 3*i)%piw_size] = xformed.x;
 		  points_in_world[(piw_front +3*i+1)%piw_size] = xformed.y;
 		  points_in_world[(piw_front +3*i+2)%piw_size] = xformed.z;
 	  }
+	  pthread_mutex_unlock(&TangoData::GetInstance().image_buffer_mutex);
 	  piw_front = (piw_front + depth_buffer_size)%piw_size;
 	  //LOGI("depth_cam_extents: (%lf,%lf)x(%lf,%lf)",minX,minY,maxX,maxY);
   }
