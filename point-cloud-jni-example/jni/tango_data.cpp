@@ -310,7 +310,10 @@ void TangoData::UpdateXYZijData() {
       glm::translate(glm::mat4(1.0f), translation) * glm::mat4_cast(rotation);
 
   if(depth_buffer_size != 0){
-	  //TODO: Cache more points
+	  //float maxX = cc_cx;
+	  //float minX = cc_cx;
+	  //float maxY = cc_cy;
+	  //float minY = cc_cy;
 	  glm::mat4 oc_2_ow_mat = GetOC2OWMat(true, true);
 
 	  piw_num_items += depth_buffer_size;
@@ -318,6 +321,12 @@ void TangoData::UpdateXYZijData() {
 		  piw_num_items = piw_size;
 	  }
 	  for(int i=0;i<depth_buffer_size/3;i++){
+		  //Calculate color camera coordinates for point:
+		  //  Rescale points so they lie on the focal plane
+		  float ratio = cc_fx / depth_buffer[3*i+2];
+		  float px = cc_cx + depth_buffer[3*i]*ratio;
+		  float py = cc_cy + depth_buffer[3*i+1]*ratio;
+
 		  glm::vec4 orig_pt(depth_buffer[3*i],depth_buffer[3*i+1],depth_buffer[3*i+2],1.0);
 		  glm::vec4 xformed = oc_2_ow_mat * inverse_z_mat * orig_pt;
 		  points_in_world[(piw_front + 3*i)%piw_size] = xformed.x;
@@ -325,6 +334,7 @@ void TangoData::UpdateXYZijData() {
 		  points_in_world[(piw_front +3*i+2)%piw_size] = xformed.z;
 	  }
 	  piw_front = (piw_front + depth_buffer_size)%piw_size;
+	  //LOGI("depth_cam_extents: (%lf,%lf)x(%lf,%lf)",minX,minY,maxX,maxY);
   }
 
   // Reset xyz_ij dirty flag.
@@ -399,6 +409,35 @@ bool TangoData::SetupExtrinsicsMatrices() {
                        pose_data.orientation[2]);
   c_2_imu_mat = glm::translate(glm::mat4(1.0f), translation) *
     glm::mat4_cast(rotation);
+
+  GetIntrinsics();
+  return true;
+}
+
+bool TangoData::GetIntrinsics() {
+  // Retrieve the Intrinsic
+  TangoCameraIntrinsics ccIntrinsics;
+  if (TangoService_getCameraIntrinsics(TANGO_CAMERA_COLOR, &ccIntrinsics)
+      != TANGO_SUCCESS) {
+    LOGE("TangoService_getCameraIntrinsics(): Failed");
+    return false;
+  }
+
+  // Color camera's image plane width.
+  cc_width = ccIntrinsics.width;
+  // Color camera's image plane height.
+  cc_height = ccIntrinsics.height;
+  // Color camera's x axis focal length.
+  cc_fx = ccIntrinsics.fx;
+  // Color camera's y axis focal length.
+  cc_fy = ccIntrinsics.fy;
+  // Principal point x coordinate on the image.
+  cc_cx = ccIntrinsics.cx;
+  // Principal point y coordinate on the image.
+  cc_cy = ccIntrinsics.cy;
+  for (int i = 0; i < 5; i++) {
+    cc_distortion[i] = ccIntrinsics.distortion[i];
+  }
   return true;
 }
 

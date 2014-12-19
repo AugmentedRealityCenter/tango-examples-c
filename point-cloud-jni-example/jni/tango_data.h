@@ -55,7 +55,7 @@ class TangoData {
   TangoErrorType Connect();
   bool ConnectCallbacks();
   void Disconnect();
-
+  bool GetIntrinsics();
   bool SetupExtrinsicsMatrices();
   glm::mat4 GetOC2OWMat(bool is_depth, bool already_locked = false);
 
@@ -87,6 +87,16 @@ class TangoData {
   float depth_frame_delta_time;
 
   uint32_t max_vertex_count;
+
+  // Tango Intrinsic for color camera.
+    int cc_width;
+    int cc_height;
+    double cc_fx;
+    double cc_fy;
+    double cc_cx;
+    double cc_cy;
+    double cc_distortion[5];
+
 private:
   // Device to start service matrix.
   glm::mat4 d_2_ss_mat_depth;
