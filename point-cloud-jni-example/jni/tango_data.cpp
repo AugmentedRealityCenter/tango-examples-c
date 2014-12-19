@@ -148,7 +148,7 @@ bool TangoData::SetConfig() {
   // the actual float buffer size.
   depth_buffer = new float[3 * max_vertex_count];
 
-  piw_size = 3*max_vertex_count;
+  piw_size = 3*10*max_vertex_count; //Enough room for at least 10 frames
   piw_front = 0;
   piw_num_items = 0;
   points_in_world = new float[piw_size];
@@ -313,14 +313,18 @@ void TangoData::UpdateXYZijData() {
 	  //TODO: Cache more points
 	  glm::mat4 oc_2_ow_mat = GetOC2OWMat(true, true);
 
-	  piw_num_items = depth_buffer_size;
+	  piw_num_items += depth_buffer_size;
+	  if(piw_num_items > piw_size) {
+		  piw_num_items = piw_size;
+	  }
 	  for(int i=0;i<depth_buffer_size/3;i++){
 		  glm::vec4 orig_pt(depth_buffer[3*i],depth_buffer[3*i+1],depth_buffer[3*i+2],1.0);
 		  glm::vec4 xformed = oc_2_ow_mat * inverse_z_mat * orig_pt;
-		  points_in_world[3*i] = xformed.x;
-		  points_in_world[3*i+1] = xformed.y;
-		  points_in_world[3*i+2] = xformed.z;
+		  points_in_world[(piw_front + 3*i)%piw_size] = xformed.x;
+		  points_in_world[(piw_front +3*i+1)%piw_size] = xformed.y;
+		  points_in_world[(piw_front +3*i+2)%piw_size] = xformed.z;
 	  }
+	  piw_front = (piw_front + depth_buffer_size)%piw_size;
   }
 
   // Reset xyz_ij dirty flag.
