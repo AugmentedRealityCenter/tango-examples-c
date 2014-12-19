@@ -68,7 +68,7 @@ class TangoData {
 
   float* depth_buffer;
   float* color_buffer;
-  uint32_t depth_buffer_size;
+  uint32_t depth_buffer_size; //Really stores size of depth_buffer, not number of vertices
   bool is_xyzij_dirty;
 
   float* points_in_world;

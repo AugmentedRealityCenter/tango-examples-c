@@ -57,7 +57,7 @@ static void onXYZijAvailable(void*, const TangoXYZij* XYZ_ij) {
              XYZ_ij->xyz_count * 3 * sizeof(float));
     }
   }
-  TangoData::GetInstance().depth_buffer_size = XYZ_ij->xyz_count;
+  TangoData::GetInstance().depth_buffer_size = 3*XYZ_ij->xyz_count;
 
   // Calculate the depth delta frame time, and store current and
   // previous frame timestamp. prev_depth_timestamp used for querying
