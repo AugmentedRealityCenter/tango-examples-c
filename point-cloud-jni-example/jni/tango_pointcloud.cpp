@@ -240,8 +240,8 @@ bool RenderFrame() {
   // Render point cloud based on depth buffer and depth frame transformation.
   pointcloud->Render(cam->GetProjectionMatrix(), cam->GetViewMatrix(),
                      oc_2_ow_mat_depth,
-                     TangoData::GetInstance().depth_buffer_size * 3,
-                     (float*)TangoData::GetInstance().depth_buffer,
+                     TangoData::GetInstance().piw_num_items,
+                     (float*)TangoData::GetInstance().points_in_world,
                      (float*)TangoData::GetInstance().color_buffer);
 
   grid->SetPosition(glm::vec3(0.0f, 0.0f, 0.0f) - kHeightOffset);
@@ -255,7 +255,7 @@ extern "C" {
 #endif
 // Tango Service interfaces.
 JNIEXPORT jint JNICALL
-Java_com_projecttango_pointcloudnative_TangoJNINative_Initialize(
+Java_org_augmentedrealitycenter_pointcloudnative_TangoJNINative_Initialize(
     JNIEnv* env, jobject, jobject activity) {
   TangoErrorType err = TangoData::GetInstance().Initialize(env, activity);
   if (err != TANGO_SUCCESS) {
@@ -269,7 +269,7 @@ Java_com_projecttango_pointcloudnative_TangoJNINative_Initialize(
 }
 
 JNIEXPORT void JNICALL
-Java_com_projecttango_pointcloudnative_TangoJNINative_SetupConfig(JNIEnv*,
+Java_org_augmentedrealitycenter_pointcloudnative_TangoJNINative_SetupConfig(JNIEnv*,
                                                                   jobject) {
   if (!TangoData::GetInstance().SetConfig())
   {
@@ -278,7 +278,7 @@ Java_com_projecttango_pointcloudnative_TangoJNINative_SetupConfig(JNIEnv*,
 }
 
 JNIEXPORT void JNICALL
-Java_com_projecttango_pointcloudnative_TangoJNINative_ConnectCallbacks(
+Java_org_augmentedrealitycenter_pointcloudnative_TangoJNINative_ConnectCallbacks(
     JNIEnv*, jobject) {
   if (!TangoData::GetInstance().ConnectCallbacks()) {
     LOGE("Tango ConnectCallbacks failed");
@@ -286,7 +286,7 @@ Java_com_projecttango_pointcloudnative_TangoJNINative_ConnectCallbacks(
 }
 
 JNIEXPORT jint JNICALL
-Java_com_projecttango_pointcloudnative_TangoJNINative_Connect(JNIEnv*,
+Java_org_augmentedrealitycenter_pointcloudnative_TangoJNINative_Connect(JNIEnv*,
                                                               jobject) {
   TangoErrorType err = TangoData::GetInstance().Connect();
   if (err != TANGO_SUCCESS) {
@@ -296,7 +296,7 @@ Java_com_projecttango_pointcloudnative_TangoJNINative_Connect(JNIEnv*,
 }
 
 JNIEXPORT void JNICALL
-Java_com_projecttango_pointcloudnative_TangoJNINative_SetupExtrinsics(JNIEnv*,
+Java_org_augmentedrealitycenter_pointcloudnative_TangoJNINative_SetupExtrinsics(JNIEnv*,
                                                                       jobject) {
   // The extrinsics can only be queried after connected to service.
   if (!TangoData::GetInstance().SetupExtrinsicsMatrices()) {
@@ -305,13 +305,13 @@ Java_com_projecttango_pointcloudnative_TangoJNINative_SetupExtrinsics(JNIEnv*,
 }
 
 JNIEXPORT void JNICALL
-Java_com_projecttango_pointcloudnative_TangoJNINative_Disconnect(JNIEnv*,
+Java_org_augmentedrealitycenter_pointcloudnative_TangoJNINative_Disconnect(JNIEnv*,
                                                                  jobject) {
   TangoData::GetInstance().Disconnect();
 }
 
 JNIEXPORT void JNICALL
-Java_com_projecttango_pointcloudnative_TangoJNINative_OnDestroy(JNIEnv*,
+Java_org_augmentedrealitycenter_pointcloudnative_TangoJNINative_OnDestroy(JNIEnv*,
                                                                 jobject) {
   if (cam != NULL) {
     delete cam;
@@ -346,31 +346,31 @@ Java_com_projecttango_pointcloudnative_TangoJNINative_OnDestroy(JNIEnv*,
 
 // Graphic interfaces.
 JNIEXPORT void JNICALL
-Java_com_projecttango_pointcloudnative_TangoJNINative_InitGlContent(
+Java_org_augmentedrealitycenter_pointcloudnative_TangoJNINative_InitGlContent(
     JNIEnv*, jobject, jint width, jint height) {
   InitGlContent();
 }
 
 JNIEXPORT void JNICALL
-Java_com_projecttango_pointcloudnative_TangoJNINative_SetupGraphic(
+Java_org_augmentedrealitycenter_pointcloudnative_TangoJNINative_SetupGraphic(
     JNIEnv*, jobject, jint width, jint height) {
   SetupGraphics(width, height);
 }
 
 JNIEXPORT void JNICALL
-Java_com_projecttango_pointcloudnative_TangoJNINative_Render(JNIEnv*, jobject) {
+Java_org_augmentedrealitycenter_pointcloudnative_TangoJNINative_Render(JNIEnv*, jobject) {
   RenderFrame();
 }
 
 JNIEXPORT void JNICALL
-Java_com_projecttango_pointcloudnative_TangoJNINative_SetCamera(
+Java_org_augmentedrealitycenter_pointcloudnative_TangoJNINative_SetCamera(
     JNIEnv*, jobject, int camera_index) {
   SetCamera(static_cast<CameraType>(camera_index));
 }
 
 // Tango data interfaces.
 JNIEXPORT jstring JNICALL
-Java_com_projecttango_pointcloudnative_TangoJNINative_GetPoseString(JNIEnv* env,
+Java_org_augmentedrealitycenter_pointcloudnative_TangoJNINative_GetPoseString(JNIEnv* env,
                                                                     jobject) {
   pthread_mutex_lock(&TangoData::GetInstance().pose_mutex);
   string ret_string = TangoData::GetInstance().pose_string;
@@ -379,7 +379,7 @@ Java_com_projecttango_pointcloudnative_TangoJNINative_GetPoseString(JNIEnv* env,
 }
 
 JNIEXPORT jstring JNICALL
-Java_com_projecttango_pointcloudnative_TangoJNINative_GetEventString(
+Java_org_augmentedrealitycenter_pointcloudnative_TangoJNINative_GetEventString(
     JNIEnv* env, jobject) {
   pthread_mutex_lock(&TangoData::GetInstance().event_mutex);
   string ret_string = TangoData::GetInstance().event_string;
@@ -388,14 +388,14 @@ Java_com_projecttango_pointcloudnative_TangoJNINative_GetEventString(
 }
 
 JNIEXPORT jstring JNICALL
-Java_com_projecttango_pointcloudnative_TangoJNINative_GetVersionNumber(
+Java_org_augmentedrealitycenter_pointcloudnative_TangoJNINative_GetVersionNumber(
     JNIEnv* env, jobject) {
   return (env)
       ->NewStringUTF(TangoData::GetInstance().lib_version_string.c_str());
 }
 
 JNIEXPORT jint JNICALL
-Java_com_projecttango_pointcloudnative_TangoJNINative_GetVerticesCount(
+Java_org_augmentedrealitycenter_pointcloudnative_TangoJNINative_GetVerticesCount(
     JNIEnv*, jobject) {
   pthread_mutex_lock(&TangoData::GetInstance().xyzij_mutex);
   int ret_val = TangoData::GetInstance().depth_buffer_size;
@@ -404,7 +404,7 @@ Java_com_projecttango_pointcloudnative_TangoJNINative_GetVerticesCount(
 }
 
 JNIEXPORT float JNICALL
-Java_com_projecttango_pointcloudnative_TangoJNINative_GetAverageZ(JNIEnv*,
+Java_org_augmentedrealitycenter_pointcloudnative_TangoJNINative_GetAverageZ(JNIEnv*,
                                                                   jobject) {
   pthread_mutex_lock(&TangoData::GetInstance().xyzij_mutex);
   float ret_val = TangoData::GetInstance().depth_average_length;
@@ -413,7 +413,7 @@ Java_com_projecttango_pointcloudnative_TangoJNINative_GetAverageZ(JNIEnv*,
 }
 
 JNIEXPORT float JNICALL
-Java_com_projecttango_pointcloudnative_TangoJNINative_GetFrameDeltaTime(
+Java_org_augmentedrealitycenter_pointcloudnative_TangoJNINative_GetFrameDeltaTime(
     JNIEnv*, jobject) {
   pthread_mutex_lock(&TangoData::GetInstance().xyzij_mutex);
   float ret_val = TangoData::GetInstance().depth_frame_delta_time;
@@ -423,7 +423,7 @@ Java_com_projecttango_pointcloudnative_TangoJNINative_GetFrameDeltaTime(
 
 // Touching GL interface.
 JNIEXPORT void JNICALL
-Java_com_projecttango_pointcloudnative_TangoJNINative_StartSetCameraOffset(
+Java_org_augmentedrealitycenter_pointcloudnative_TangoJNINative_StartSetCameraOffset(
     JNIEnv*, jobject) {
   if (cam != NULL) {
     cam_start_angle[0] = cam_cur_angle[0];
@@ -433,7 +433,7 @@ Java_com_projecttango_pointcloudnative_TangoJNINative_StartSetCameraOffset(
 }
 
 JNIEXPORT void JNICALL
-Java_com_projecttango_pointcloudnative_TangoJNINative_SetCameraOffset(
+Java_org_augmentedrealitycenter_pointcloudnative_TangoJNINative_SetCameraOffset(
     JNIEnv*, jobject, float rotation_x, float rotation_y, float dist) {
   if (cam != NULL) {
     cam_cur_angle[0] = cam_start_angle[0] + rotation_x;

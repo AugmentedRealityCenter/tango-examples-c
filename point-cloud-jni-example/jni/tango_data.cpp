@@ -147,15 +147,20 @@ bool TangoData::SetConfig() {
   // max_vertex_count is the vertices count, max_vertex_count*3 is
   // the actual float buffer size.
   depth_buffer = new float[3 * max_vertex_count];
-  color_buffer = new float[3 * max_vertex_count];
+
+  piw_size = 3*max_vertex_count;
+  piw_front = 0;
+  piw_num_items = 0;
+  points_in_world = new float[piw_size];
+
+  color_buffer = new float[piw_size];
 
   //TODO remove this test code, and get colors from camera
-  for(int i=0;i<max_vertex_count;i++){
+  for(int i=0;i<piw_size/3;i++){
 	  color_buffer[3*i] = 1.0f;
 	  color_buffer[3*i+1] = 0.0f;
 	  color_buffer[3*i+2] = 0.0f;
   }
-
   return true;
 }
 
@@ -255,6 +260,11 @@ void TangoData::UpdatePoseData() {
   pthread_mutex_unlock(&pose_mutex);
 }
 
+static const glm::mat4 inverse_z_mat = glm::mat4(1.0f, 0.0f, 0.0f, 0.0f,
+                                                 0.0f, -1.0f, 0.0f, 0.0f,
+                                                 0.0f, 0.0f, -1.0f, 0.0f,
+                                                 0.0f, 0.0f, 0.0f, 1.0f);
+
 // Update XYZij data. This function will be called only when the XYZ_ij
 // data is changed (dirty). This function is being called through the
 // GL rendering thread (See tango_pointcloud.cpp, RenderFrame()).
@@ -299,9 +309,22 @@ void TangoData::UpdateXYZijData() {
   d_2_ss_mat_depth =
       glm::translate(glm::mat4(1.0f), translation) * glm::mat4_cast(rotation);
 
+  if(depth_buffer_size != 0){
+	  //TODO: Cache more points
+	  glm::mat4 oc_2_ow_mat = GetOC2OWMat(true, true);
+
+	  piw_num_items = depth_buffer_size;
+	  for(int i=0;i<depth_buffer_size/3;i++){
+		  glm::vec4 orig_pt(depth_buffer[3*i],depth_buffer[3*i+1],depth_buffer[3*i+2],1.0);
+		  glm::vec4 xformed = oc_2_ow_mat * inverse_z_mat * orig_pt;
+		  points_in_world[3*i] = xformed.x;
+		  points_in_world[3*i+1] = xformed.y;
+		  points_in_world[3*i+2] = xformed.z;
+	  }
+  }
+
   // Reset xyz_ij dirty flag.
   is_xyzij_dirty = false;
-
   pthread_mutex_unlock(&xyzij_mutex);
 }
 
@@ -309,18 +332,19 @@ void TangoData::UpdateXYZijData() {
 // Note: motion tracking pose and depth pose are different. Depth updates slower
 // than pose update, we always want to use the closest pose to transform
 // point cloud to local space to world space.
-glm::mat4 TangoData::GetOC2OWMat(bool is_depth_pose) {
+glm::mat4 TangoData::GetOC2OWMat(bool is_depth_pose, bool already_locked /* = false */) {
   if (is_depth_pose) {
-    pthread_mutex_lock(&xyzij_mutex);
+	if(!already_locked) pthread_mutex_lock(&xyzij_mutex);
     glm::mat4 temp = d_2_ss_mat_depth;
-    pthread_mutex_unlock(&xyzij_mutex);
+    if(!already_locked) pthread_mutex_unlock(&xyzij_mutex);
+    //We are pre-applying the d_2_ss_mat_depth when we store the points
     return ss_2_ow_mat * temp * glm::inverse(d_2_imu_mat) * c_2_imu_mat *
            oc_2_c_mat;
   }
   else {
-    pthread_mutex_lock(&pose_mutex);
+	if(!already_locked) pthread_mutex_lock(&pose_mutex);
     glm::mat4 temp = d_2_ss_mat_motion;
-    pthread_mutex_unlock(&pose_mutex);
+    if(!already_locked) pthread_mutex_unlock(&pose_mutex);
     return ss_2_ow_mat * temp * glm::inverse(d_2_imu_mat) * c_2_imu_mat *
            oc_2_c_mat;
   }

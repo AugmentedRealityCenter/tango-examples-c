@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.projecttango.pointcloudnative;
+package org.augmentedrealitycenter.pointcloudnative;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;

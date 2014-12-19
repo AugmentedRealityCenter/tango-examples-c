@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.projecttango.pointcloudnative;
+package org.augmentedrealitycenter.pointcloudnative;
 
 public class TangoJNINative {
   static {

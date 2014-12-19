@@ -57,8 +57,8 @@ void Pointcloud::Render(glm::mat4 projection_mat, glm::mat4 view_mat, glm::mat4 
   // Lock xyz_ij mutex.
   pthread_mutex_lock(&TangoData::GetInstance().xyzij_mutex);
 
-  // Calculate model view projection matrix.
-  glm::mat4 mvp_mat = projection_mat * view_mat * model_mat * inverse_z_mat;
+  // Calculate model view projection matrix. -- model_mat has been pre-applied to the points
+  glm::mat4 mvp_mat = projection_mat * view_mat /* model_mat*/ /* inverse_z_mat*/;
   glUniformMatrix4fv(uniform_mvp_mat_, 1, GL_FALSE, glm::value_ptr(mvp_mat));
 
   // Bind vertex buffer.
@@ -77,7 +77,7 @@ void Pointcloud::Render(glm::mat4 projection_mat, glm::mat4 view_mat, glm::mat4 
 
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-  glDrawArrays(GL_POINTS, 0, 3 * depth_buffer_size);
+  glDrawArrays(GL_POINTS, 0, depth_buffer_size);
 
   // Unlock xyz_ij mutex.
   pthread_mutex_unlock(&TangoData::GetInstance().xyzij_mutex);

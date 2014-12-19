@@ -57,7 +57,7 @@ class TangoData {
   void Disconnect();
 
   bool SetupExtrinsicsMatrices();
-  glm::mat4 GetOC2OWMat(bool is_depth);
+  glm::mat4 GetOC2OWMat(bool is_depth, bool already_locked = false);
 
   void UpdatePoseData();
   void UpdateXYZijData();
@@ -71,6 +71,11 @@ class TangoData {
   uint32_t depth_buffer_size;
   bool is_xyzij_dirty;
 
+  float* points_in_world;
+  uint32_t piw_size;
+  uint32_t piw_front;
+  uint32_t piw_num_items;
+
   TangoPoseData cur_pose_data;
   TangoPoseData prev_pose_data;
   bool is_pose_dirty;
@@ -82,16 +87,16 @@ class TangoData {
   float depth_frame_delta_time;
 
   uint32_t max_vertex_count;
-
+private:
   // Device to start service matrix.
   glm::mat4 d_2_ss_mat_depth;
   // Device to start service matrix.
   glm::mat4 d_2_ss_mat_motion;
-  // Device to IMU matrix.
+  // Device to IMU matrix. -- set once, in SetupExtrinsicsMatrices
   glm::mat4 d_2_imu_mat;
-  // Color camera to IMU matrix.
+  // Color camera to IMU matrix. -- set once, in SetupExtrinsicsMatrices
   glm::mat4 c_2_imu_mat;
-
+public:
   string event_string;
   string lib_version_string;
   string pose_string;
